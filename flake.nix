@@ -22,6 +22,7 @@
       perSystem = {
         config,
         system,
+        lib,
         ...
       }: let
         pkgs = import nixpkgs {
@@ -61,8 +62,15 @@
             cargo-generate
             rustup
             rustfmt
+            rust-analyzer
             espup
+            espflash
+            podman
+            libclang.lib
+            ldproxy
           ];
+          LD_LIBRARY_PATH = lib.makeLibraryPath [pkgs.stdenv.cc.cc pkgs.libz pkgs.libxml2];
+          LIBCLANG_PATH = lib.makeLibraryPath [pkgs.libclang];
 
           shellHook = ''
             # espup install --targets esp32s3 --export-file ./exports-esp.sh
