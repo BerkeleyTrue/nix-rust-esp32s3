@@ -31,3 +31,10 @@ opt-level = "z"
 [profile.release]
 opt-level = 's'
 
+[[package.metadata.esp-idf-sys.extra_components]]
+bindings_header = "src/bindings.h"
+remote_component = { name = "espressif/esp_lcd_gc9a01", version = "2.0.0"}
+
+[[package.metadata.esp-idf-sys.extra_components]]
+bindings_header = "src/bindings.h"
+remote_component = { name = "espressif/esp_lcd_touch_cst816s", version = "1.0.3"}

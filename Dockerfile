@@ -34,7 +34,6 @@ RUN ARCH=$($CARGO_HOME/bin/rustup show | grep "Default host" | sed -e 's/.* //')
     chmod u+x "${CARGO_HOME}/bin/espup" && \
     curl -L "https://github.com/esp-rs/espflash/releases/latest/download/cargo-espflash-${ARCH}.zip" -o "${CARGO_HOME}/bin/cargo-espflash.zip" && \
     ls -a "${CARGO_HOME}/bin" && \
-    pwd && \
     unzip "${CARGO_HOME}/bin/cargo-espflash.zip" -d "${CARGO_HOME}/bin/" && \
     rm "${CARGO_HOME}/bin/cargo-espflash.zip" && \
     chmod u+x "${CARGO_HOME}/bin/cargo-espflash" && \
