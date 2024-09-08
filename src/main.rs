@@ -1,9 +1,11 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod esp32;
+// use esp_idf as _;
 
 slint::include_modules!();
 
-fn main() -> Result<(), slint::PlatformError>{
+fn main() -> Result<(), slint::PlatformError> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
     // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
     esp_idf_svc::sys::link_patches();
@@ -11,7 +13,10 @@ fn main() -> Result<(), slint::PlatformError>{
     // Bind the log crate to the ESP Logging facilities
     esp_idf_svc::log::EspLogger::initialize_default();
 
-    let ui = AppWindow::new()?;
+    // slint: set platform
+    slint::platform::set_platform(esp32::EspPlatform::new()).unwrap();
+
+    let ui = AppWindow::new().expect("Failed to load UI");
 
     ui.on_request_increase_value({
         let ui_handle = ui.as_weak();
