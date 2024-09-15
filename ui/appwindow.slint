@@ -3,11 +3,9 @@ import { Button, VerticalBox } from "std-widgets.slint";
 export component AppWindow inherits Window {
     preferred-width: 240px;
     preferred-height: 240px;
-    in-out property <int> counter: 42;
-    callback request-increase-value();
     VerticalBox {
         Text {
-            text: "\{root.counter}";
+            text: "Hello, world!";
         }
 
         // Button {

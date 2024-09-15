@@ -1321,9 +1321,8 @@ dependencies = [
 
 [[package]]
 name = "gc9a01-rs"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e9b54e27d915459153f29b0a39bb907fb85ae622121f96052742e74b51db92d"
+version = "0.2.1"
+source = "git+https://github.com/rsov/gc9a01.git?branch=feature/direct-write#dd4f512b082713fe3559588e408b1c477dd21a39"
 dependencies = [
  "display-interface",
  "display-interface-spi",

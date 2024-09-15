@@ -71,11 +71,13 @@ RUN --mount=type=bind,source=src,target=src \
     --mount=type=bind,source=.cargo,target=.cargo \
     --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
-    # TODO: need to figure out how to invalidate this cache
-    --mount=type=cache,target=/app/target/ \
+    # NOTE: id can be used to break the cache
+    --mount=type=cache,id=005,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-    cargo build --release
+    cargo build --release && \
+    # copy out of cached target dir or next step won't be able to find it
+    cp /app/target/xtensa-esp32s3-espidf/release/test /app/test
 
 FROM scratch
-COPY --from=build /app/target/xtensa-esp32s3-espidf/release/test /
+COPY --from=build /app/test /
 ENTRYPOINT ["/test"]
