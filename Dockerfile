@@ -1,3 +1,4 @@
+# this sets up the build process for the project using esp-rs
 ARG VARIANT=bookworm-slim
 FROM debian:${VARIANT} AS build
 ENV DEBIAN_FRONTEND=noninteractive
@@ -70,6 +71,7 @@ RUN --mount=type=bind,source=src,target=src \
     --mount=type=bind,source=.cargo,target=.cargo \
     --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
+    # TODO: need to figure out how to invalidate this cache
     --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
     cargo build --release
