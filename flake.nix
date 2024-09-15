@@ -58,6 +58,7 @@
           ];
 
           buildInputs = with pkgs; [
+            clippy
             cargo
             cargo-generate
             rustup
