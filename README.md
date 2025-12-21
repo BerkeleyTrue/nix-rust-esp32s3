@@ -12,3 +12,7 @@ I did get the docker build script set up to output the binary which I was then a
 I'm able to build esp-idf projects within the dockerfile found in the root directory. 
 
 I'm also running rust-analyzer through the dockerfile found in ./lsp and I'm asking neovim lspconfig to use that version using a local fennel/lua script loaded at neovim startup.
+
+## Notes
+
+idf components are listed in the cargo toml under package.metadata.esp-idf-sys.extra_components
