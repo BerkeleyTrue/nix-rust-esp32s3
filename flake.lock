@@ -1,20 +1,5 @@
 {
   "nodes": {
-    "boulder": {
-      "locked": {
-        "lastModified": 1700410615,
-        "narHash": "sha256-r67QjyDtT5GfC+HZEo2tGfG9WDc6R3C0OveLM9DPxrU=",
-        "owner": "berkeleytrue",
-        "repo": "nix-boulder-banner",
-        "rev": "7cf6a06a78218654b9b8c3df2e6c0c8ed865d967",
-        "type": "github"
-      },
-      "original": {
-        "owner": "berkeleytrue",
-        "repo": "nix-boulder-banner",
-        "type": "github"
-      }
-    },
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": "nixpkgs-lib"
@@ -96,23 +81,22 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1724727824,
-        "narHash": "sha256-0XH9MJk54imJm+RHOLTUJ7e+ponLW00tw5ke4MTVa1Y=",
+        "lastModified": 1766201043,
+        "narHash": "sha256-eplAP+rorKKd0gNjV3rA6+0WMzb1X1i16F5m5pASnjA=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "36bae45077667aff5720e5b3f1a5458f51cf0776",
+        "rev": "b3aad468604d3e488d627c0b43984eb60e75e782",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-24.05",
+        "ref": "nixos-25.11",
         "repo": "nixpkgs",
         "type": "github"
       }
     },
     "root": {
       "inputs": {
-        "boulder": "boulder",
         "flake-parts": "flake-parts",
         "nixgl": "nixgl",
         "nixpkgs": "nixpkgs_2"
