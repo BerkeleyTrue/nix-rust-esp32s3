@@ -6,8 +6,6 @@ ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
 # Arguments
-ARG CONTAINER_USER=root
-ARG CONTAINER_GROUP=esp
 ARG ESP_BOARD=esp32s3
 ARG CARGO_HOME=/usr/local/cargo
 ARG BUILD_TYPE=release
@@ -45,14 +43,10 @@ RUN ARCH=$($CARGO_HOME/bin/rustup show | grep "Default host" | sed -e 's/.* //')
     curl -L "https://github.com/esp-rs/embuild/releases/latest/download/ldproxy-${ARCH}.zip" -o "${CARGO_HOME}/bin/ldproxy.zip" && \
     unzip "${CARGO_HOME}/bin/ldproxy.zip" -d "${CARGO_HOME}/bin/" && \
     rm "${CARGO_HOME}/bin/ldproxy.zip" && \
-    chmod u+x "${CARGO_HOME}/bin/ldproxy" && \
-    curl -L "https://github.com/esp-rs/esp-web-flash-server/releases/latest/download/web-flash-${ARCH}.zip" -o "${CARGO_HOME}/bin/web-flash.zip" && \
-    unzip "${CARGO_HOME}/bin/web-flash.zip" -d "${CARGO_HOME}/bin/" && \
-    rm "${CARGO_HOME}/bin/web-flash.zip" && \
-    chmod u+x "${CARGO_HOME}/bin/web-flash"
+    chmod u+x "${CARGO_HOME}/bin/ldproxy"
 
 # Install Xtensa Rust
-RUN ${CARGO_HOME}/bin/espup install\
+RUN ${CARGO_HOME}/bin/espup install \
     --targets "${ESP_BOARD}" \
     --log-level debug \
     --export-file /app/export-esp.sh
@@ -60,17 +54,15 @@ RUN ${CARGO_HOME}/bin/espup install\
 # Set default toolchain
 RUN rustup default esp
 
-# Activate ESP environment
-RUN echo "source /app/export-esp.sh" >> .bashrc
-
+# Copy source files
 COPY Cargo.toml Cargo.lock rust-toolchain.toml sdkconfig.defaults build.rs ./
 COPY .cargo .cargo
 COPY src src
 COPY ui ui
 
-# NOTE: id can be used to break the cache
-RUN --mount=type=cache,id=004,target=/app/target/ \
-    --mount=type=cache,target=/usr/local/cargo/registry/ \
+# Build the application
+# Cache only the cargo registry (safe), not target dir (causes ldproxy issues)
+RUN --mount=type=cache,target=/usr/local/cargo/registry/ \
     bash -c "source /app/export-esp.sh && cargo build --release" && \
     # copy out of cached target dir or next step won't be able to find it
     cp /app/target/xtensa-esp32s3-espidf/release/test /app/test
