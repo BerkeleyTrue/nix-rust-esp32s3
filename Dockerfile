@@ -63,16 +63,13 @@ RUN rustup default esp
 # Activate ESP environment
 RUN echo "source /app/export-esp.sh" >> .bashrc
 
-RUN --mount=type=bind,source=src,target=src \
-    --mount=type=bind,source=ui,target=ui \
-    --mount=type=bind,source=build.rs,target=build.rs \
-    --mount=type=bind,source=rust-toolchain.toml,target=rust-toolchain.toml \
-    --mount=type=bind,source=sdkconfig.defaults,target=sdkconfig.defaults \
-    --mount=type=bind,source=.cargo,target=.cargo \
-    --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
-    --mount=type=bind,source=Cargo.lock,target=Cargo.lock,rw \
-    # NOTE: id can be used to break the cache
-    --mount=type=cache,id=008,target=/app/target/ \
+COPY Cargo.toml Cargo.lock rust-toolchain.toml sdkconfig.defaults build.rs ./
+COPY .cargo .cargo
+COPY src src
+COPY ui ui
+
+# NOTE: id can be used to break the cache
+RUN --mount=type=cache,id=001,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
     bash -c "source /app/export-esp.sh && cargo build --release" && \
     # copy out of cached target dir or next step won't be able to find it
