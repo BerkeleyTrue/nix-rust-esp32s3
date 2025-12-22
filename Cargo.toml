@@ -11,6 +11,7 @@ slint = { version = "1.14.1", default-features = false, features = ["compat-1-2"
 gc9a01-rs = "0.4.1"
 embedded-graphics = { version = "0.8.1", features = ["defmt"] }
 
+embassy-executor = { version = "0.9.1", features = ["executor-thread", "arch-std"] }
 [build-dependencies]
 embuild = "0.33.1"
 slint-build = "1.14.1"
@@ -22,7 +23,7 @@ std = ["alloc", "esp-idf-svc/binstart", "esp-idf-svc/std"]
 alloc = ["esp-idf-svc/alloc"]
 nightly = ["esp-idf-svc/nightly"]
 experimental = ["esp-idf-svc/experimental"]
-embassy = ["esp-idf-svc/embassy-sync", "esp-idf-svc/critical-section", "esp-idf-svc/embassy-time-driver"]
+embassy = ["esp-idf-svc/embassy-sync", "esp-idf-svc/critical-section"]
 
 [profile.dev]
 # Rust debug is too slow.
