@@ -4,14 +4,15 @@
 // https://releases.slint.dev/1.1.1/docs/rust/slint/
 // https://releases.slint.dev/1.1.1/docs/rust/slint/
 extern crate alloc;
-// use std::option::Option;
+use embedded_graphics::pixelcolor::raw::RawU16;
+use embedded_graphics::pixelcolor::Rgb565;
+use embedded_graphics::prelude::{DrawTarget, Point, Size};
+use embedded_graphics::primitives::Rectangle;
+use esp_idf_svc::hal::delay::Delay;
 use esp_idf_svc::hal::gpio::{AnyIOPin, AnyOutputPin, Output, OutputPin, PinDriver};
 use esp_idf_svc::hal::prelude::*;
 use esp_idf_svc::hal::spi::config::{Config, DriverConfig, Mode, Phase, Polarity};
 use esp_idf_svc::hal::spi::{SpiDeviceDriver, SpiDriver};
-// use esp_idf_svc::hal::sys::EspError;
-use esp_idf_svc::hal::delay::Delay;
-// use embedded_graphics_core::pixelcolor::raw::RawU16;
 use gc9a01::{mode::BufferedGraphics, prelude::*, Gc9a01, SPIDisplayInterface}; // lcd screen
                                                                                // use slint::PlatformError;
 use slint::platform::software_renderer::{LineBufferProvider, Rgb565Pixel};
@@ -57,27 +58,41 @@ impl EspPlatform {
     }
 }
 
-struct DrawBuffer<'a> {
-    display_driver: BoxedDisplayDriver<'a>,
+struct DrawBuffer<'a, D>
+where
+    D: DrawTarget<Color = Rgb565>,
+{
+    display_driver: Box<D>,
     buffer: &'a mut [Rgb565Pixel],
 }
 
-impl LineBufferProvider for &mut DrawBuffer<'_> {
+impl<T: DrawTarget<Color = Rgb565>> LineBufferProvider for &mut DrawBuffer<'_, T> {
     type TargetPixel = Rgb565Pixel;
 
     fn process_line(
         &mut self,
-        _line: usize,
+        line: usize,
         range: core::ops::Range<usize>,
         render_fn: impl FnOnce(&mut [Rgb565Pixel]),
     ) {
         log::info!("process_line");
         let buffer = &mut self.buffer[range.clone()];
 
+        // render into the line
         render_fn(buffer);
 
+        // send the line to the display using draw target fill contiguous
         self.display_driver
-            .send_line(&buffer.iter().map(|&x| x.0.to_be()).collect::<Vec<u16>>())
+            .fill_contiguous(
+                &Rectangle::new(
+                    Point::new(range.start as _, line as _),
+                    Size::new(range.len() as _, 1),
+                ),
+                self.buffer[range.clone()]
+                    .iter()
+                    .map(|p| RawU16::new(p.0).into()),
+            )
+            .map_err(drop)
             .unwrap();
     }
 }
@@ -156,7 +171,7 @@ impl slint::platform::Platform for EspPlatform {
 
         let mut draw_buffer = DrawBuffer {
             display_driver,
-            buffer: &mut [Rgb565Pixel(0x0); Self::DRAW_BUFFER_SIZE],
+            buffer: &mut vec![Rgb565Pixel(0x0); Self::DRAW_BUFFER_SIZE].into_boxed_slice(),
         };
 
         loop {

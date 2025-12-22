@@ -9,6 +9,7 @@ log = { version = "0.4", default-features = false }
 esp-idf-svc = { version = "0.51", default-features = false }
 slint = { version = "1.14.1", default-features = false, features = ["compat-1-2", "unsafe-single-threaded", "libm", "renderer-software"]}
 gc9a01-rs = "0.4.1"
+embedded-graphics = { version = "0.8.1", features = ["defmt"] }
 
 [build-dependencies]
 embuild = "0.33.1"
