@@ -21,3 +21,7 @@ run-lsp:
 [group('flash')]
 flash:
   web-flash --chip esp32s3 out/test
+
+[group('ui')]
+preview:
+  slint-viewer --auto-reload ui/appwindow.slint

@@ -79,6 +79,7 @@
               libclang.lib
               ldproxy
               just
+              slint-viewer
             ]);
           LD_LIBRARY_PATH = lib.makeLibraryPath [pkgs.stdenv.cc.cc pkgs.libz pkgs.libxml2];
           LIBCLANG_PATH = lib.makeLibraryPath [pkgs.libclang];
