@@ -106,7 +106,7 @@ impl slint::platform::Platform for EspPlatform {
             Gc9a01::new(
                 interface,
                 DisplayResolution240x240,
-                DisplayRotation::Rotate0,
+                DisplayRotation::Rotate180, // usb port down
             )
         );
 
