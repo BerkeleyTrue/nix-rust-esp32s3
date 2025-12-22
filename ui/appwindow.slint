@@ -3,16 +3,24 @@ import { Button, VerticalBox } from "std-widgets.slint";
 export component AppWindow inherits Window {
     preferred-width: 240px;
     preferred-height: 240px;
-    VerticalBox {
-        Text {
-            text: "Hello, world!";
+    VerticalLayout {
+        alignment: center;
+        HorizontalLayout {
+            alignment: center;
+            Text {
+                horizontal-alignment: center;
+                text: "Hello, world!";
+            }
         }
 
-        // Button {
-        //     text: "Increase value";
-        //     clicked => {
-        //         root.request-increase-value();
-        //     }
-        // }
+        HorizontalLayout {
+            alignment: center;
+            Button {
+                text: "Click Me";
+                clicked => {
+                    // Handle button click
+                }
+            }
+        }
     }
 }
