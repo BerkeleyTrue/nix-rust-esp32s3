@@ -4,6 +4,7 @@ default:
 [group('build')]
 build:
   docker build --output=out -t test_esp-idf .
+  notify-send "Build Complete" "ESP32 build finished"
 
 [group('build')]
 debug:
