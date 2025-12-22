@@ -74,7 +74,7 @@ RUN --mount=type=bind,source=src,target=src \
     # NOTE: id can be used to break the cache
     --mount=type=cache,id=005,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-    cargo build --release && \
+    bash -c "source /app/export-esp.sh && cargo build --release" && \
     # copy out of cached target dir or next step won't be able to find it
     cp /app/target/xtensa-esp32s3-espidf/release/test /app/test
 
