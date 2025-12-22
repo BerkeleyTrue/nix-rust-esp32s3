@@ -3,30 +3,20 @@
 // https://github.com/IniterWorker/esp32-s3-touch-lcd-1-28/blob/master/src/main.rs#L142
 // https://releases.slint.dev/1.1.1/docs/rust/slint/
 // https://releases.slint.dev/1.1.1/docs/rust/slint/
+// https://files.waveshare.com/wiki/ESP32-S3-Touch-LCD-1.28/ESP32-S3-Touch-LCD-1.28-Sch.pdf
 extern crate alloc;
-use embedded_graphics::pixelcolor::raw::RawU16;
-use embedded_graphics::pixelcolor::Rgb565;
-use embedded_graphics::prelude::{DrawTarget, Point, Size};
-use embedded_graphics::primitives::Rectangle;
-use esp_idf_svc::hal::delay::Delay;
-use esp_idf_svc::hal::gpio::{AnyIOPin, AnyOutputPin, Output, OutputPin, PinDriver};
+
+use esp_idf_svc::hal::delay::{Delay, FreeRtos};
+use esp_idf_svc::hal::gpio::{OutputPin, PinDriver};
 use esp_idf_svc::hal::prelude::*;
 use esp_idf_svc::hal::spi::config::{Config, DriverConfig, Mode, Phase, Polarity};
 use esp_idf_svc::hal::spi::{SpiDeviceDriver, SpiDriver};
-use gc9a01::{mode::BufferedGraphics, prelude::*, Gc9a01, SPIDisplayInterface}; // lcd screen
-                                                                               // use slint::PlatformError;
-use slint::platform::software_renderer::{LineBufferProvider, Rgb565Pixel};
+use gc9a01::{prelude::*, Gc9a01, SPIDisplayInterface}; // lcd screen
+use slint::platform::software_renderer::Rgb565Pixel;
 
-type BoxedDisplayDriver<'a> = Box<
-    Gc9a01<
-        SPIInterface<SpiDeviceDriver<'a, SpiDriver<'a>>, PinDriver<'a, AnyOutputPin, Output>>,
-        DisplayResolution240x240,
-        BufferedGraphics<DisplayResolution240x240>,
-    >,
->;
+use crate::draw_buffer::DrawBuffer;
 
 pub struct EspPlatform {
-    // display_driver: BoxedDisplayDriver<'a>,
     window: alloc::rc::Rc<slint::platform::software_renderer::MinimalSoftwareWindow>,
     timer: esp_idf_svc::timer::EspTimerService<esp_idf_svc::timer::Task>,
 }
@@ -34,7 +24,6 @@ pub struct EspPlatform {
 impl EspPlatform {
     const DISPLAY_WIDTH: usize = 240;
     const DISPLAY_HEIGHT: usize = 240;
-    const DRAW_BUFFER_SIZE: usize = Self::DISPLAY_WIDTH * Self::DISPLAY_HEIGHT;
 
     // Create a new instance of the platform
     // we initialize stuff here
@@ -58,45 +47,6 @@ impl EspPlatform {
     }
 }
 
-struct DrawBuffer<'a, D>
-where
-    D: DrawTarget<Color = Rgb565>,
-{
-    display_driver: Box<D>,
-    buffer: &'a mut [Rgb565Pixel],
-}
-
-impl<T: DrawTarget<Color = Rgb565>> LineBufferProvider for &mut DrawBuffer<'_, T> {
-    type TargetPixel = Rgb565Pixel;
-
-    fn process_line(
-        &mut self,
-        line: usize,
-        range: core::ops::Range<usize>,
-        render_fn: impl FnOnce(&mut [Rgb565Pixel]),
-    ) {
-        log::info!("process_line");
-        let buffer = &mut self.buffer[range.clone()];
-
-        // render into the line
-        render_fn(buffer);
-
-        // send the line to the display using draw target fill contiguous
-        self.display_driver
-            .fill_contiguous(
-                &Rectangle::new(
-                    Point::new(range.start as _, line as _),
-                    Size::new(range.len() as _, 1),
-                ),
-                self.buffer[range.clone()]
-                    .iter()
-                    .map(|p| RawU16::new(p.0).into()),
-            )
-            .map_err(drop)
-            .unwrap();
-    }
-}
-
 impl slint::platform::Platform for EspPlatform {
     fn create_window_adapter(
         &self,
@@ -110,6 +60,7 @@ impl slint::platform::Platform for EspPlatform {
     }
 
     // Spins an event loop and renders the visible windows.
+    // TODO: handle errors
     fn run_event_loop(&self) -> Result<(), slint::PlatformError> {
         log::info!("init event loop");
         // borrow gpio
@@ -119,10 +70,12 @@ impl slint::platform::Platform for EspPlatform {
         // lcd spi
         let lcd_sclk = pins.gpio10;
         let lcd_mosi = pins.gpio11;
+        let lcd_miso = pins.gpio12; // not used
         let lcd_cs = pins.gpio9; // chip select
         let lcd_dc = pins.gpio8;
         let lcd_reset = pins.gpio14;
-        // let lcd_backlight = pins.gpio2;
+        let lcd_backlight = pins.gpio2;
+
         // touch/imu on i2c
         // let i2c_sda = pins.gpio6;
         // let i2c_scl = pins.gpio7;
@@ -134,7 +87,7 @@ impl slint::platform::Platform for EspPlatform {
             peripherals.spi2,
             lcd_sclk,
             lcd_mosi,
-            None::<AnyIOPin>,         // miso , no input required for screen
+            Some(lcd_miso),         // miso , no input required for screen
             &DriverConfig::default(), // here you can add dma, not sure if I need this or not
         )
         .unwrap();
@@ -149,33 +102,34 @@ impl slint::platform::Platform for EspPlatform {
         let lcd_dc_output = PinDriver::output(lcd_dc.downgrade_output()).unwrap();
         let interface = SPIDisplayInterface::new(spi_device, lcd_dc_output);
 
-        let mut display_driver: BoxedDisplayDriver = Box::new(
+        let mut display_driver = Box::new(
             Gc9a01::new(
                 interface,
                 DisplayResolution240x240,
                 DisplayRotation::Rotate0,
             )
-            .into_buffered_graphics(),
         );
 
-        // let mut backlight_output = PinDriver::output(lcd_backlight.downgrade_output()).unwrap();
+        let mut backlight_output = PinDriver::output(lcd_backlight).unwrap();
+        backlight_output.set_high().unwrap(); // turn on backlight
+        //
         let mut reset_output = PinDriver::output(lcd_reset.downgrade_output()).unwrap();
         let mut delay = Delay::new_default();
 
         display_driver.clear_fit().unwrap();
         display_driver.reset(&mut reset_output, &mut delay).unwrap();
         display_driver.init(&mut delay).unwrap();
-        display_driver.flush().unwrap();
 
         log::info!("Display configured!");
 
+        let mut display_buffer = vec![Rgb565Pixel(0x0); Self::DISPLAY_WIDTH].into_boxed_slice();
         let mut draw_buffer = DrawBuffer {
             display_driver,
-            buffer: &mut vec![Rgb565Pixel(0x0); Self::DRAW_BUFFER_SIZE].into_boxed_slice(),
+            buffer: &mut display_buffer,
         };
 
+        log::info!("Entering main loop");
         loop {
-            log::info!("looping");
             slint::platform::update_timers_and_animations();
 
             self.window.draw_if_needed(|renderer| {
@@ -185,6 +139,7 @@ impl slint::platform::Platform for EspPlatform {
             if self.window.has_active_animations() {
                 continue;
             }
+            FreeRtos::delay_ms(16);
         }
     }
 }

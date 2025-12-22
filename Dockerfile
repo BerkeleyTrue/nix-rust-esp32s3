@@ -69,7 +69,7 @@ COPY src src
 COPY ui ui
 
 # NOTE: id can be used to break the cache
-RUN --mount=type=cache,id=001,target=/app/target/ \
+RUN --mount=type=cache,id=004,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
     bash -c "source /app/export-esp.sh && cargo build --release" && \
     # copy out of cached target dir or next step won't be able to find it
