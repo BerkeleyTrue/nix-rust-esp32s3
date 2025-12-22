@@ -19,8 +19,4 @@ run-lsp:
 
 [group('flash')]
 flash:
-  web-flash --chip esp32s3 target/xtensa-esp32s3-none-elf/release/test
-
-[group('flash')]
-flash-debug:
-  web-flash --chip esp32s3 target/xtensa-esp32s3-none-elf/debug/test
+  web-flash --chip esp32s3 out/test
