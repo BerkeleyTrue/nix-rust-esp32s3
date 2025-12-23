@@ -3,6 +3,10 @@ import { Button, VerticalBox } from "std-widgets.slint";
 export component AppWindow inherits Window {
     preferred-width: 240px;
     preferred-height: 240px;
+    in-out property<int> counter: 0;
+
+    callback inc();
+
     VerticalLayout {
         alignment: center;
         HorizontalLayout {
@@ -13,12 +17,22 @@ export component AppWindow inherits Window {
             }
         }
 
+        // add a counter display
+        HorizontalLayout {
+            alignment: center;
+            padding-top: 20px;
+            Text {
+                horizontal-alignment: center;
+                text: "Counter: " + root.counter;
+            }
+        }
+
         HorizontalLayout {
             alignment: center;
             Button {
                 text: "Click Me";
                 clicked => {
-                    // Handle button click
+                    root.inc();
                 }
             }
         }
