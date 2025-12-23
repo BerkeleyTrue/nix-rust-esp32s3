@@ -1,7 +1,7 @@
-# this sets up the build process for the project using esp-rs
-ARG VARIANT=bookworm-slim
-FROM debian:${VARIANT} AS build
-ENV DEBIAN_FRONTEND=noninteractive
+# Use the official Espressif IDF image as base
+ARG IDF_VERSION=v5.2.3
+FROM espressif/idf:${IDF_VERSION} AS build
+
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
@@ -10,15 +10,14 @@ ARG ESP_BOARD=esp32s3
 ARG CARGO_HOME=/usr/local/cargo
 ARG BUILD_TYPE=release
 
-# Update envs
+# Rust environment
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH
 
-# Install dependencies
+# Install additional dependencies not in IDF image
 RUN apt-get update \
-    && apt-get install -y pkg-config curl gcc clang libudev-dev unzip xz-utils \
-    git wget flex bison gperf python3 python3-pip python3-venv cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0 \
+    && apt-get install -y pkg-config libudev-dev unzip \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts
 
 WORKDIR /app
@@ -27,12 +26,11 @@ WORKDIR /app
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
     --default-toolchain none -y --profile minimal
 
-# Install extra crates
+# Install esp-rs tools
 RUN ARCH=$($CARGO_HOME/bin/rustup show | grep "Default host" | sed -e 's/.* //') && \
     curl -L "https://github.com/esp-rs/espup/releases/latest/download/espup-${ARCH}" -o "${CARGO_HOME}/bin/espup" && \
     chmod u+x "${CARGO_HOME}/bin/espup" && \
     curl -L "https://github.com/esp-rs/espflash/releases/latest/download/cargo-espflash-${ARCH}.zip" -o "${CARGO_HOME}/bin/cargo-espflash.zip" && \
-    ls -a "${CARGO_HOME}/bin" && \
     unzip "${CARGO_HOME}/bin/cargo-espflash.zip" -d "${CARGO_HOME}/bin/" && \
     rm "${CARGO_HOME}/bin/cargo-espflash.zip" && \
     chmod u+x "${CARGO_HOME}/bin/cargo-espflash" && \
@@ -45,7 +43,7 @@ RUN ARCH=$($CARGO_HOME/bin/rustup show | grep "Default host" | sed -e 's/.* //')
     rm "${CARGO_HOME}/bin/ldproxy.zip" && \
     chmod u+x "${CARGO_HOME}/bin/ldproxy"
 
-# Install Xtensa Rust
+# Install Xtensa Rust toolchain with locked ESP-IDF version
 RUN ${CARGO_HOME}/bin/espup install \
     --targets "${ESP_BOARD}" \
     --log-level debug \
@@ -61,10 +59,11 @@ COPY src src
 COPY ui ui
 
 # Build the application
-# Cache only the cargo registry (safe), not target dir (causes ldproxy issues)
+# Source esp-rs first, then IDF (IDF last so its GCC takes precedence in PATH)
 RUN --mount=type=cache,target=/usr/local/cargo/registry/ \
-    bash -c "source /app/export-esp.sh && cargo build --release" && \
-    # copy out of cached target dir or next step won't be able to find it
+    . /app/export-esp.sh && \
+    IDF_PATH_FORCE=1 . $IDF_PATH/export.sh && \
+    cargo build --release && \
     cp /app/target/xtensa-esp32s3-espidf/release/test /app/test
 
 FROM scratch
