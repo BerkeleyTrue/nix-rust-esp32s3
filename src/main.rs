@@ -22,17 +22,18 @@ fn main() -> Result<(), slint::PlatformError> {
     slint::platform::set_platform(esp32::EspPlatform::new()).unwrap();
 
     log::info!("Loading UI");
-    let ui = AppWindow::new().expect("Failed to load UI");
+    let window = AppWindow::new().expect("Failed to load UI");
+    let w_window = window.as_weak();
 
-    // ui.on_request_increase_value({
-    //     let ui_handle = ui.as_weak();
-    //     move || {
-    //         let ui = ui_handle.unwrap();
-    //         ui.set_counter(ui.get_counter() + 1);
-    //     }
-    // });
-    //
+    window.on_inc({
+        move || {
+            let window = w_window.unwrap();
+            window.set_counter(window.get_counter() + 1);
+        }
+    });
+
     log::info!("Running UI");
-    ui.run()
+    window
+        .run()
         .inspect_err(|e| log::error!("Error running UI: {:?}", e))
 }

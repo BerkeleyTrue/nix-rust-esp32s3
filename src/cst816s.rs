@@ -11,10 +11,9 @@ use esp_idf_svc::hal::{gpio::GpioError, i2c::I2cError};
 pub enum Error {
     Comm(I2cError),
     Pin(GpioError),
-
-    GenericError,
 }
 
+// TODO: add rotate
 pub struct CST816S<I2C, PINT, RST> {
     i2c: I2C,
     pin_int: PINT,

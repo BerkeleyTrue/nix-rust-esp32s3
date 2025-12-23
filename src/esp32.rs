@@ -147,11 +147,31 @@ impl slint::platform::Platform for EspPlatform {
         );
 
         touch.setup(&mut delay).unwrap();
-        // TODO: setup handler for touch events
 
         log::info!("Entering main loop");
         loop {
             slint::platform::update_timers_and_animations();
+
+            // Poll touch events
+            if let Some(event) = touch.read_one_touch_event(true) {
+                log::info!(
+                    "Touch event: action={} x={} y={}",
+                    event.action,
+                    event.x,
+                    event.y
+                );
+                let position = slint::LogicalPosition::new(event.x as f32, event.y as f32);
+                let button = slint::platform::PointerEventButton::Left;
+
+                let window_event = match event.action {
+                    0 => slint::platform::WindowEvent::PointerPressed { position, button },
+                    1 => slint::platform::WindowEvent::PointerReleased { position, button },
+                    2 => slint::platform::WindowEvent::PointerMoved { position },
+                    _ => continue,
+                };
+
+                self.window.dispatch_event(window_event);
+            }
 
             self.window.draw_if_needed(|renderer| {
                 renderer.render_by_line(&mut draw_buffer);
