@@ -1,7 +1,8 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-mod esp32;
 mod draw_buffer;
+mod esp32;
+mod cst816s;
 // use esp_idf as _;
 
 slint::include_modules!();

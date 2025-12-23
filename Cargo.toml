@@ -12,6 +12,7 @@ gc9a01-rs = "0.4.1"
 embedded-graphics = { version = "0.8.1", features = ["defmt"] }
 
 embassy-executor = { version = "0.9.1", features = ["executor-thread", "arch-std"] }
+embedded-hal = "1.0.0"
 [build-dependencies]
 embuild = "0.33.1"
 slint-build = "1.14.1"

@@ -8,12 +8,14 @@ extern crate alloc;
 
 use esp_idf_svc::hal::delay::{Delay, FreeRtos};
 use esp_idf_svc::hal::gpio::{OutputPin, PinDriver};
+use esp_idf_svc::hal::i2c::I2cDriver;
 use esp_idf_svc::hal::prelude::*;
 use esp_idf_svc::hal::spi::config::{Config, DriverConfig, Mode, Phase, Polarity};
 use esp_idf_svc::hal::spi::{SpiDeviceDriver, SpiDriver};
 use gc9a01::{prelude::*, Gc9a01, SPIDisplayInterface}; // lcd screen
 use slint::platform::software_renderer::Rgb565Pixel;
 
+use crate::cst816s::CST816S;
 use crate::draw_buffer::DrawBuffer;
 
 pub struct EspPlatform {
@@ -77,18 +79,29 @@ impl slint::platform::Platform for EspPlatform {
         let lcd_backlight = pins.gpio2;
 
         // touch/imu on i2c
-        // let i2c_sda = pins.gpio6;
-        // let i2c_scl = pins.gpio7;
+        let i2c_sda = pins.gpio6;
+        let i2c_scl = pins.gpio7;
         // imu
         // let _qmi8658_int1 = pins.gpio4;
         // let _qmi8658_int2 = pins.gpio3;
+        let touch_int = pins.gpio5;
+        let touch_reset = pins.gpio13;
 
         let spi_driver = SpiDriver::new(
             peripherals.spi2,
             lcd_sclk,
             lcd_mosi,
-            Some(lcd_miso),         // miso , no input required for screen
+            Some(lcd_miso),           // miso , no input required for screen
             &DriverConfig::default(), // here you can add dma, not sure if I need this or not
+        )
+        .unwrap();
+
+        // setup i2c
+        let i2c = I2cDriver::new(
+            peripherals.i2c0,
+            i2c_sda,
+            i2c_scl,
+            &esp_idf_svc::hal::i2c::config::Config::default(),
         )
         .unwrap();
 
@@ -102,17 +115,15 @@ impl slint::platform::Platform for EspPlatform {
         let lcd_dc_output = PinDriver::output(lcd_dc.downgrade_output()).unwrap();
         let interface = SPIDisplayInterface::new(spi_device, lcd_dc_output);
 
-        let mut display_driver = Box::new(
-            Gc9a01::new(
-                interface,
-                DisplayResolution240x240,
-                DisplayRotation::Rotate180, // usb port down
-            )
-        );
+        let mut display_driver = Box::new(Gc9a01::new(
+            interface,
+            DisplayResolution240x240,
+            DisplayRotation::Rotate180, // usb port down
+        ));
 
         let mut backlight_output = PinDriver::output(lcd_backlight).unwrap();
         backlight_output.set_high().unwrap(); // turn on backlight
-        //
+
         let mut reset_output = PinDriver::output(lcd_reset.downgrade_output()).unwrap();
         let mut delay = Delay::new_default();
 
@@ -127,6 +138,16 @@ impl slint::platform::Platform for EspPlatform {
             display_driver,
             buffer: &mut display_buffer,
         };
+
+        // setup touch
+        let mut touch = CST816S::new(
+            i2c,
+            PinDriver::input(touch_int).unwrap(),
+            PinDriver::output(touch_reset).unwrap(),
+        );
+
+        touch.setup(&mut delay).unwrap();
+        // TODO: setup handler for touch events
 
         log::info!("Entering main loop");
         loop {
